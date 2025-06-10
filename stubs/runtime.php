@@ -2,7 +2,10 @@
 
 $appRoot = $_ENV['LAMBDA_TASK_ROOT'];
 
+
 require $appRoot.'/vendor/autoload.php';
+
+fwrite(STDERR, 'Loaded Composer autoload file');
 
 /*
 |--------------------------------------------------------------------------
@@ -20,5 +23,4 @@ if (isset($_ENV['APP_RUNNING_IN_CONSOLE']) &&
     return require __DIR__.'/cliRuntime.php';
 } else {
     return require __DIR__.'/fpmRuntime.php';
-    // return require __DIR__.'/httpRuntime.php';
 }
