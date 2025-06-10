@@ -136,7 +136,7 @@ class VaporWorkCommand extends Command
     {
         return tap(json_decode(base64_decode($this->argument('message')), true), function ($message) {
             if ($message === false) {
-                throw new InvalidArgumentException("Unable to unserialize message.");
+                throw new InvalidArgumentException('Unable to unserialize message.');
             }
         });
     }
@@ -166,12 +166,21 @@ class VaporWorkCommand extends Command
      */
     protected function gatherWorkerOptions()
     {
-        return new WorkerOptions(
-            $this->option('delay'), $memory = 512,
-            $this->option('timeout'), $sleep = 0,
-            $this->option('tries'), $this->option('force'),
-            $stopWhenEmpty = false
-        );
+        $options = [
+            $this->option('delay'),
+            $memory = 512,
+            $this->option('timeout'),
+            $sleep = 0,
+            $this->option('tries'),
+            $this->option('force'),
+            $stopWhenEmpty = false,
+        ];
+
+        if (property_exists(WorkerOptions::class, 'name')) {
+            $options = array_merge(['default'], $options);
+        }
+
+        return new WorkerOptions(...$options);
     }
 
     /**
