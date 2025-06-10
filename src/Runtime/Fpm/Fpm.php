@@ -43,6 +43,13 @@ class Fpm
     protected $client;
 
     /**
+     * The FPM socket connection instance.
+     *
+     * @var \Hoa\FastCGI\SocketConnections\UnixDomainSocket
+     */
+    protected $socketConnection;
+
+    /**
      * The FPM process instance.
      *
      * @var \Symfony\Component\Process\Process
@@ -53,15 +60,17 @@ class Fpm
      * Create a new FPM instance.
      *
      * @param  \Hoa\Socket\Client  $handler
+     * @param  \Hoa\FastCGI\SocketConnections\UnixDomainSocket  $socketConnection
      * @param  string  $handler
      * @param  array  $serverVariables
      * @return void
      */
-    public function __construct(Client $client, string $handler, array $serverVariables = [])
+    public function __construct(Client $client, UnixDomainSocket $socketConnection, string $handler, array $serverVariables = [])
     {
         $this->client = $client;
         $this->handler = $handler;
         $this->serverVariables = $serverVariables;
+        $this->socketConnection = $socketConnection;
     }
 
     /**
@@ -77,9 +86,9 @@ class Fpm
             @unlink(static::SOCKET);
         }
 
-        $client = new Client(new UnixDomainSocket(static::SOCKET, 1000, 30000));
+        $socketConnection = new UnixDomainSocket(self::SOCKET, 1000, 30000);
 
-        return static::$instance = tap(new static($client, $handler, $serverVariables), function ($fpm) {
+        return static::$instance = tap(new static(new Client, $socketConnection, $handler, $serverVariables), function ($fpm) {
             $fpm->start();
         });
     }
@@ -118,10 +127,10 @@ class Fpm
         fwrite(STDERR, 'Starting FPM Process...');
 
         $this->fpm->disableOutput()
-                ->setTimeout(null)
-                ->start(function ($type, $output) {
-                    fwrite(STDERR, $output);
-                });
+            ->setTimeout(null)
+            ->start(function ($type, $output) {
+                fwrite(STDERR, $output);
+            });
 
         $this->ensureFpmHasStarted();
     }
@@ -153,7 +162,8 @@ class Fpm
      */
     public function handle($request)
     {
-        return (new FpmApplication($this->client))->handle($request);
+        return (new FpmApplication($this->client, $this->socketConnection))
+                    ->handle($request);
     }
 
     /**
